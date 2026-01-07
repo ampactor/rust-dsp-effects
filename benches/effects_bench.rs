@@ -9,7 +9,7 @@
 //! - Parameter smoothing cost
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use rust_dsp_effects::{Chorus, Delay, Distortion, Effect, Oversampled, WaveShape};
+use rust_dsp_effects::{Chorus, Delay, Distortion, Effect, LowPassFilter, Oversampled, WaveShape};
 
 const SAMPLE_RATE: f32 = 48000.0;
 const BLOCK_SIZES: &[usize] = &[64, 128, 256, 512, 1024];
@@ -358,6 +358,100 @@ fn bench_delay_times(c: &mut Criterion) {
 }
 
 // ============================================================================
+// Filter Benchmarks
+// ============================================================================
+
+fn bench_filter_single_sample(c: &mut Criterion) {
+    let mut filter = LowPassFilter::new(SAMPLE_RATE);
+    filter.set_cutoff_hz(1000.0);
+    filter.set_q(0.707);
+    filter.reset();
+
+    c.bench_function("filter/single_sample", |b| {
+        b.iter(|| {
+            let input = black_box(0.1);
+            black_box(filter.process(input))
+        })
+    });
+}
+
+fn bench_filter_block(c: &mut Criterion) {
+    let mut group = c.benchmark_group("filter/block");
+
+    for size in BLOCK_SIZES {
+        group.throughput(Throughput::Elements(*size as u64));
+
+        let mut filter = LowPassFilter::new(SAMPLE_RATE);
+        filter.set_cutoff_hz(1000.0);
+        filter.set_q(0.707);
+        filter.reset();
+
+        let input: Vec<f32> = (0..*size).map(|i| (i as f32 / 100.0).sin()).collect();
+        let mut output = vec![0.0; *size];
+
+        group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, _| {
+            b.iter(|| {
+                filter.process_block(black_box(&input), black_box(&mut output));
+            })
+        });
+    }
+
+    group.finish();
+}
+
+fn bench_filter_cutoff_sweep(c: &mut Criterion) {
+    let mut group = c.benchmark_group("filter/cutoff_sweep");
+
+    let cutoffs = [
+        ("low_100hz", 100.0),
+        ("mid_1khz", 1000.0),
+        ("high_10khz", 10000.0),
+    ];
+
+    for (name, cutoff) in &cutoffs {
+        let mut filter = LowPassFilter::new(SAMPLE_RATE);
+        filter.set_cutoff_hz(*cutoff);
+        filter.set_q(0.707);
+        filter.reset();
+
+        group.bench_function(*name, |b| {
+            b.iter(|| {
+                let input = black_box(0.1);
+                black_box(filter.process(input))
+            })
+        });
+    }
+
+    group.finish();
+}
+
+fn bench_filter_resonance(c: &mut Criterion) {
+    let mut group = c.benchmark_group("filter/resonance");
+
+    let q_values = [
+        ("butterworth_0.707", 0.707),
+        ("resonant_2.0", 2.0),
+        ("high_res_10.0", 10.0),
+    ];
+
+    for (name, q) in &q_values {
+        let mut filter = LowPassFilter::new(SAMPLE_RATE);
+        filter.set_cutoff_hz(1000.0);
+        filter.set_q(*q);
+        filter.reset();
+
+        group.bench_function(*name, |b| {
+            b.iter(|| {
+                let input = black_box(0.1);
+                black_box(filter.process(input))
+            })
+        });
+    }
+
+    group.finish();
+}
+
+// ============================================================================
 // Memory/Allocation Benchmarks
 // ============================================================================
 
@@ -388,6 +482,15 @@ fn bench_delay_creation(c: &mut Criterion) {
     });
 }
 
+fn bench_filter_creation(c: &mut Criterion) {
+    c.bench_function("filter/creation", |b| {
+        b.iter(|| {
+            let filter = black_box(LowPassFilter::new(SAMPLE_RATE));
+            black_box(filter)
+        })
+    });
+}
+
 // ============================================================================
 // Criterion Configuration
 // ============================================================================
@@ -409,6 +512,11 @@ criterion_group!(
     bench_delay_feedback_amounts,
     bench_delay_times,
     bench_delay_creation,
+    bench_filter_single_sample,
+    bench_filter_block,
+    bench_filter_cutoff_sweep,
+    bench_filter_resonance,
+    bench_filter_creation,
 );
 
 criterion_main!(benches);
