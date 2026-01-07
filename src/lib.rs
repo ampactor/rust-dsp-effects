@@ -28,6 +28,7 @@
 
 pub mod biquad;
 pub mod chorus;
+pub mod compressor;
 pub mod delay;
 pub mod delay_line;
 pub mod distortion;
@@ -40,6 +41,7 @@ pub mod param;
 // Re-export main types at crate root
 pub use biquad::Biquad;
 pub use chorus::Chorus;
+pub use compressor::Compressor;
 pub use delay::Delay;
 pub use delay_line::InterpolatedDelay;
 pub use distortion::{Distortion, WaveShape};

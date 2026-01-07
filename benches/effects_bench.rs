@@ -9,7 +9,7 @@
 //! - Parameter smoothing cost
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use rust_dsp_effects::{Chorus, Delay, Distortion, Effect, LowPassFilter, Oversampled, WaveShape};
+use rust_dsp_effects::{Chorus, Compressor, Delay, Distortion, Effect, LowPassFilter, Oversampled, WaveShape};
 
 const SAMPLE_RATE: f32 = 48000.0;
 const BLOCK_SIZES: &[usize] = &[64, 128, 256, 512, 1024];
@@ -452,6 +452,108 @@ fn bench_filter_resonance(c: &mut Criterion) {
 }
 
 // ============================================================================
+// Compressor Benchmarks
+// ============================================================================
+
+fn bench_compressor_single_sample(c: &mut Criterion) {
+    let mut comp = Compressor::new(SAMPLE_RATE);
+    comp.set_threshold_db(-20.0);
+    comp.set_ratio(4.0);
+    comp.set_attack_ms(5.0);
+    comp.set_release_ms(50.0);
+    comp.reset();
+
+    c.bench_function("compressor/single_sample", |b| {
+        b.iter(|| {
+            let input = black_box(0.1);
+            black_box(comp.process(input))
+        })
+    });
+}
+
+fn bench_compressor_block(c: &mut Criterion) {
+    let mut group = c.benchmark_group("compressor/block");
+
+    for size in BLOCK_SIZES {
+        group.throughput(Throughput::Elements(*size as u64));
+
+        let mut comp = Compressor::new(SAMPLE_RATE);
+        comp.set_threshold_db(-20.0);
+        comp.set_ratio(4.0);
+        comp.set_attack_ms(5.0);
+        comp.set_release_ms(50.0);
+        comp.reset();
+
+        let input: Vec<f32> = (0..*size).map(|i| (i as f32 / 100.0).sin()).collect();
+        let mut output = vec![0.0; *size];
+
+        group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, _| {
+            b.iter(|| {
+                comp.process_block(black_box(&input), black_box(&mut output));
+            })
+        });
+    }
+
+    group.finish();
+}
+
+fn bench_compressor_ratios(c: &mut Criterion) {
+    let mut group = c.benchmark_group("compressor/ratios");
+
+    let ratios = [
+        ("gentle_2to1", 2.0),
+        ("moderate_4to1", 4.0),
+        ("heavy_10to1", 10.0),
+    ];
+
+    for (name, ratio) in &ratios {
+        let mut comp = Compressor::new(SAMPLE_RATE);
+        comp.set_threshold_db(-20.0);
+        comp.set_ratio(*ratio);
+        comp.set_attack_ms(5.0);
+        comp.set_release_ms(50.0);
+        comp.reset();
+
+        group.bench_function(*name, |b| {
+            b.iter(|| {
+                let input = black_box(0.3);
+                black_box(comp.process(input))
+            })
+        });
+    }
+
+    group.finish();
+}
+
+fn bench_compressor_attack_times(c: &mut Criterion) {
+    let mut group = c.benchmark_group("compressor/attack_times");
+
+    let attacks = [
+        ("fast_1ms", 1.0),
+        ("medium_10ms", 10.0),
+        ("slow_50ms", 50.0),
+    ];
+
+    for (name, attack) in &attacks {
+        let mut comp = Compressor::new(SAMPLE_RATE);
+        comp.set_threshold_db(-20.0);
+        comp.set_ratio(4.0);
+        comp.set_attack_ms(*attack);
+        comp.set_release_ms(100.0);
+        comp.reset();
+
+        group.bench_function(*name, |b| {
+            b.iter(|| {
+                let input = black_box(0.3);
+                black_box(comp.process(input))
+            })
+        });
+    }
+
+    group.finish();
+}
+
+// ============================================================================
 // Memory/Allocation Benchmarks
 // ============================================================================
 
@@ -491,6 +593,15 @@ fn bench_filter_creation(c: &mut Criterion) {
     });
 }
 
+fn bench_compressor_creation(c: &mut Criterion) {
+    c.bench_function("compressor/creation", |b| {
+        b.iter(|| {
+            let comp = black_box(Compressor::new(SAMPLE_RATE));
+            black_box(comp)
+        })
+    });
+}
+
 // ============================================================================
 // Criterion Configuration
 // ============================================================================
@@ -517,6 +628,11 @@ criterion_group!(
     bench_filter_cutoff_sweep,
     bench_filter_resonance,
     bench_filter_creation,
+    bench_compressor_single_sample,
+    bench_compressor_block,
+    bench_compressor_ratios,
+    bench_compressor_attack_times,
+    bench_compressor_creation,
 );
 
 criterion_main!(benches);
