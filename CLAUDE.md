@@ -47,6 +47,8 @@
 
 ## Technical Stack
 
+**Rust Edition**: 2024 (current stable - do NOT use 2021 in commands or examples)
+
 **Core Dependencies** (start here):
 - `no_std` compatible from the start
 - Consider: `dasp` for basic DSP primitives
@@ -203,10 +205,11 @@ The goal is to show Digitech: "I can implement classic effects AND think about n
 ## Key Reminders
 
 - **Stay grounded**: Reference implementations are truth
-- **Ship early**: 3-4 weeks to impressive, then iterate publicly  
+- **Ship early**: 3-4 weeks to impressive, then iterate publicly
 - **Avoid drift**: Beautiful math is great IF it serves the practical goal
 - **Document everything**: The write-up matters as much as the code
 - **Benchmark religiously**: Performance claims need data
+- **Suggest commits**: After completing a logical unit of work (new effect, feature, fix), suggest a commit message to the user
 
 ## Questions to Answer During Development
 

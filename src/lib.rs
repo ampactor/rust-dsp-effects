@@ -26,9 +26,14 @@
 // Enable no_std when std feature is disabled
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub mod distortion;
 pub mod effect;
 pub mod param;
 
 // Re-export main types at crate root
+pub use distortion::{Distortion, WaveShape};
 pub use effect::{Chain, Effect, EffectExt};
 pub use param::{LinearSmoothedParam, SmoothedParam};
+
+// Re-export utility functions
+pub use distortion::{db_to_linear, linear_to_db};
