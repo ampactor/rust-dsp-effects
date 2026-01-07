@@ -28,11 +28,13 @@
 
 pub mod distortion;
 pub mod effect;
+pub mod oversample;
 pub mod param;
 
 // Re-export main types at crate root
 pub use distortion::{Distortion, WaveShape};
 pub use effect::{Chain, Effect, EffectExt};
+pub use oversample::Oversampled;
 pub use param::{LinearSmoothedParam, SmoothedParam};
 
 // Re-export utility functions
