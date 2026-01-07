@@ -28,6 +28,7 @@
 
 pub mod chorus;
 pub mod delay;
+pub mod delay_line;
 pub mod distortion;
 pub mod effect;
 pub mod lfo;
@@ -36,7 +37,8 @@ pub mod param;
 
 // Re-export main types at crate root
 pub use chorus::Chorus;
-pub use delay::InterpolatedDelay;
+pub use delay::Delay;
+pub use delay_line::InterpolatedDelay;
 pub use distortion::{Distortion, WaveShape};
 pub use effect::{Chain, Effect, EffectExt};
 pub use lfo::Lfo;

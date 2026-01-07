@@ -4,7 +4,7 @@
 //! modulated delayed copies. This implementation uses two delay lines with
 //! phase-offset LFOs to create natural-sounding width and movement.
 
-use crate::delay::InterpolatedDelay;
+use crate::delay_line::InterpolatedDelay;
 use crate::effect::Effect;
 use crate::lfo::Lfo;
 use crate::param::SmoothedParam;

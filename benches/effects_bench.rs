@@ -9,7 +9,7 @@
 //! - Parameter smoothing cost
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion, Throughput};
-use rust_dsp_effects::{Chorus, Distortion, Effect, Oversampled, WaveShape};
+use rust_dsp_effects::{Chorus, Delay, Distortion, Effect, Oversampled, WaveShape};
 
 const SAMPLE_RATE: f32 = 48000.0;
 const BLOCK_SIZES: &[usize] = &[64, 128, 256, 512, 1024];
@@ -260,6 +260,104 @@ fn bench_chorus_rate_variations(c: &mut Criterion) {
 }
 
 // ============================================================================
+// Delay Benchmarks
+// ============================================================================
+
+fn bench_delay_single_sample(c: &mut Criterion) {
+    let mut delay = Delay::new(SAMPLE_RATE);
+    delay.set_delay_time_ms(375.0); // 1/8 note at 120 BPM
+    delay.set_feedback(0.5);
+    delay.set_mix(0.5);
+    delay.reset();
+
+    c.bench_function("delay/single_sample", |b| {
+        b.iter(|| {
+            let input = black_box(0.1);
+            black_box(delay.process(input))
+        })
+    });
+}
+
+fn bench_delay_block(c: &mut Criterion) {
+    let mut group = c.benchmark_group("delay/block");
+
+    for size in BLOCK_SIZES {
+        group.throughput(Throughput::Elements(*size as u64));
+
+        let mut delay = Delay::new(SAMPLE_RATE);
+        delay.set_delay_time_ms(375.0);
+        delay.set_feedback(0.5);
+        delay.set_mix(0.5);
+        delay.reset();
+
+        let input: Vec<f32> = (0..*size).map(|i| (i as f32 / 100.0).sin()).collect();
+        let mut output = vec![0.0; *size];
+
+        group.bench_with_input(BenchmarkId::from_parameter(size), size, |b, _| {
+            b.iter(|| {
+                delay.process_block(black_box(&input), black_box(&mut output));
+            })
+        });
+    }
+
+    group.finish();
+}
+
+fn bench_delay_feedback_amounts(c: &mut Criterion) {
+    let mut group = c.benchmark_group("delay/feedback_amounts");
+
+    let feedback_levels = [
+        ("no_feedback", 0.0),
+        ("medium_feedback", 0.5),
+        ("high_feedback", 0.9),
+    ];
+
+    for (name, feedback) in &feedback_levels {
+        let mut delay = Delay::new(SAMPLE_RATE);
+        delay.set_delay_time_ms(100.0);
+        delay.set_feedback(*feedback);
+        delay.set_mix(0.5);
+        delay.reset();
+
+        group.bench_function(*name, |b| {
+            b.iter(|| {
+                let input = black_box(0.1);
+                black_box(delay.process(input))
+            })
+        });
+    }
+
+    group.finish();
+}
+
+fn bench_delay_times(c: &mut Criterion) {
+    let mut group = c.benchmark_group("delay/delay_times");
+
+    let times = [
+        ("short_50ms", 50.0),
+        ("medium_250ms", 250.0),
+        ("long_1000ms", 1000.0),
+    ];
+
+    for (name, time_ms) in &times {
+        let mut delay = Delay::new(SAMPLE_RATE);
+        delay.set_delay_time_ms(*time_ms);
+        delay.set_feedback(0.5);
+        delay.set_mix(0.5);
+        delay.reset();
+
+        group.bench_function(*name, |b| {
+            b.iter(|| {
+                let input = black_box(0.1);
+                black_box(delay.process(input))
+            })
+        });
+    }
+
+    group.finish();
+}
+
+// ============================================================================
 // Memory/Allocation Benchmarks
 // ============================================================================
 
@@ -281,6 +379,15 @@ fn bench_chorus_creation(c: &mut Criterion) {
     });
 }
 
+fn bench_delay_creation(c: &mut Criterion) {
+    c.bench_function("delay/creation", |b| {
+        b.iter(|| {
+            let delay = black_box(Delay::new(SAMPLE_RATE));
+            black_box(delay)
+        })
+    });
+}
+
 // ============================================================================
 // Criterion Configuration
 // ============================================================================
@@ -297,6 +404,11 @@ criterion_group!(
     bench_chorus_parameter_smoothing,
     bench_chorus_rate_variations,
     bench_chorus_creation,
+    bench_delay_single_sample,
+    bench_delay_block,
+    bench_delay_feedback_amounts,
+    bench_delay_times,
+    bench_delay_creation,
 );
 
 criterion_main!(benches);
