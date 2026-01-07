@@ -26,14 +26,20 @@
 // Enable no_std when std feature is disabled
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub mod chorus;
+pub mod delay;
 pub mod distortion;
 pub mod effect;
+pub mod lfo;
 pub mod oversample;
 pub mod param;
 
 // Re-export main types at crate root
+pub use chorus::Chorus;
+pub use delay::InterpolatedDelay;
 pub use distortion::{Distortion, WaveShape};
 pub use effect::{Chain, Effect, EffectExt};
+pub use lfo::Lfo;
 pub use oversample::Oversampled;
 pub use param::{LinearSmoothedParam, SmoothedParam};
 
