@@ -9,16 +9,22 @@ repository = "https://github.com/ampactor/rust-dsp-effects"
 keywords = ["audio", "dsp", "effects", "embedded", "no_std"]
 categories = ["multimedia::audio", "no-std"]
 
+[features]
+default = ["std"]
+std = []
+
 [dependencies]
-# Start minimal, add as needed
+# Math functions for no_std
+libm = "0.2"
 
 [dev-dependencies]
 # For testing and benchmarking
 criterion = "0.5"
 
-[[bench]]
-name = "effects_bench"
-harness = false
+# Benchmarks will be added later
+# [[bench]]
+# name = "effects_bench"
+# harness = false
 
 [profile.release]
 opt-level = 3
