@@ -21,10 +21,9 @@ libm = "0.2"
 # For testing and benchmarking
 criterion = "0.5"
 
-# Benchmarks will be added later
-# [[bench]]
-# name = "effects_bench"
-# harness = false
+[[bench]]
+name = "effects_bench"
+harness = false
 
 [profile.release]
 opt-level = 3
